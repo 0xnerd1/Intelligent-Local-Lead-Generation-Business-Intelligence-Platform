@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ APP_NAME }}{% endblock %}
+{% block heading %}Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-5">
+  <section class="glass-card p-5">
+    <h3 class="font-bold mb-3"><i class="bi bi-person-circle text-blue-400"></i> Profile</h3>
+    <div class="grid sm:grid-cols-2 gap-3 text-sm">
+      <div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Username</div>
+        <div class="font-semibold">{{ current_user.username }}</div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Email</div>
+        <div class="font-semibold">{{ current_user.email }}</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass-card p-5">
+    <h3 class="font-bold mb-3"><i class="bi bi-key-fill text-amber-400"></i> Google Maps API</h3>
+    {% if DEMO_MODE %}
+      <div class="p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm text-amber-200">
+        <div class="font-semibold mb-1"><i class="bi bi-database-fill"></i> Currently running in demo mode</div>
+        <p class="text-amber-100/80">
+          The app is using rich mock business data. To enable real Google Places search and live maps,
+          set the <code>GOOGLE_API_KEY</code> environment variable to a key with the
+          <strong>Maps JavaScript API</strong>, <strong>Places API</strong>, and <strong>Geocoding API</strong> enabled.
+        </p>
+      </div>
+    {% else %}
+      <div class="p-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-sm text-emerald-200">
+        <i class="bi bi-check-circle-fill"></i> Google Maps key detected. Real Places API search is active.
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="glass-card p-5">
+    <h3 class="font-bold mb-3"><i class="bi bi-chat-dots-fill text-emerald-400"></i> WhatsApp message templates</h3>
+    <p class="text-xs text-slate-400 mb-3">These are the default outreach messages used when sending WhatsApp from a lead.</p>
+    <div id="templates-list" class="space-y-2 text-sm"></div>
+  </section>
+
+  <section class="glass-card p-5">
+    <h3 class="font-bold mb-3"><i class="bi bi-info-circle-fill text-purple-400"></i> About</h3>
+    <p class="text-sm text-slate-300">
+      <strong>{{ APP_NAME }}</strong> helps you find local businesses, score them as potential leads,
+      and manage outreach — all from one dashboard. Built with Flask + SQLite.
+    </p>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Render templates from main.js shared store
+  const list = document.getElementById('templates-list');
+  LeadFinder.MESSAGE_TEMPLATES.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'p-3 rounded-lg border border-slate-700 bg-slate-800/40';
+    div.innerHTML = `<div class="text-xs text-slate-400 uppercase tracking-wider mb-1">Template ${i + 1}</div><div>${t}</div>`;
+    list.appendChild(div);
+  });
+</script>
+{% endblock %}

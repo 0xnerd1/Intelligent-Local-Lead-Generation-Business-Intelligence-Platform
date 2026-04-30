@@ -1,0 +1,10 @@
+{
+  "name": "@workspace/local-lead-finder",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "python3 app.py",
+    "start": "python3 app.py",
+    "typecheck": "echo 'no typecheck for python artifact'"
+  }
+}

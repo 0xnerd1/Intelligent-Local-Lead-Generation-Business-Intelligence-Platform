@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Saved Leads · {{ APP_NAME }}{% endblock %}
+{% block heading %}Saved leads{% endblock %}
+
+{% block content %}
+<section class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
+  <div class="stat-card"><div class="stat-icon bg-blue-500/10 text-blue-400"><i class="bi bi-bookmark-star-fill"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Total</div><div id="s-total" class="stat-num">0</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-emerald-500/10 text-emerald-400"><i class="bi bi-fire"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Hot</div><div id="s-hot" class="stat-num">0</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-amber-500/10 text-amber-400"><i class="bi bi-thermometer-half"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Medium</div><div id="s-medium" class="stat-num">0</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-rose-500/10 text-rose-400"><i class="bi bi-snow"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Low</div><div id="s-low" class="stat-num">0</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-purple-500/10 text-purple-400"><i class="bi bi-chat-dots-fill"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Contacted</div><div id="s-contacted" class="stat-num">0</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-cyan-500/10 text-cyan-400"><i class="bi bi-trophy-fill"></i></div><div><div class="text-xs text-slate-400 uppercase tracking-wider">Won</div><div id="s-won" class="stat-num">0</div></div></div>
+</section>
+
+<!-- Pipeline funnel -->
+<section class="glass-card p-4 mb-5">
+  <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3"><i class="bi bi-diagram-3-fill text-blue-400"></i> Sales pipeline</h3>
+  <div id="pipeline-bars" class="flex flex-wrap gap-2 text-xs"></div>
+</section>
+
+<section class="glass-card overflow-hidden">
+  <div class="flex flex-wrap gap-3 items-center p-4 border-b border-slate-800">
+    <h3 class="font-bold tracking-tight"><i class="bi bi-list-check text-blue-400"></i> Leads</h3>
+    <select id="status-filter" class="form-input !py-1.5 w-44 !text-sm">
+      <option value="all">All statuses</option>
+      <option value="New">New</option>
+      <option value="Contacted">Contacted</option>
+      <option value="Interested">Interested</option>
+      <option value="Won">Won</option>
+      <option value="Not Interested">Not Interested</option>
+    </select>
+    <input id="search-filter" type="text" placeholder="Search saved leads…" class="form-input !py-1.5 w-56 !text-sm" />
+    <button id="csv-btn" class="btn-ghost ml-auto"><i class="bi bi-filetype-csv"></i> Export CSV</button>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400">
+        <tr>
+          <th class="px-4 py-3 text-left">Business</th>
+          <th class="px-4 py-3 text-left">Category</th>
+          <th class="px-4 py-3 text-right">Score</th>
+          <th class="px-4 py-3 text-left">Phone</th>
+          <th class="px-4 py-3 text-left">Status</th>
+          <th class="px-4 py-3 text-left">Notes</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leads-tbody" class="divide-y divide-slate-800">
+        <tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Lead detail modal -->
+<div id="lead-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4">
+  <div class="glass-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="flex items-start justify-between p-5 border-b border-slate-800">
+      <div>
+        <div class="text-[11px] text-slate-400 uppercase tracking-wider" id="m-cat">—</div>
+        <h2 class="text-xl font-black tracking-tight" id="m-name">—</h2>
+        <div class="text-xs text-slate-400 mt-0.5" id="m-addr">—</div>
+      </div>
+      <button id="m-close" class="text-slate-400 hover:text-white"><i class="bi bi-x-lg text-xl"></i></button>
+    </div>
+    <div class="p-5 space-y-5">
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="bg-slate-800/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-400">Score</div>
+          <div id="m-score" class="text-2xl font-black text-emerald-400">—</div>
+        </div>
+        <div class="bg-slate-800/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-400">Rating</div>
+          <div id="m-rating" class="text-2xl font-black text-amber-400">—</div>
+        </div>
+        <div class="bg-slate-800/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-400">Reviews</div>
+          <div id="m-reviews" class="text-2xl font-black text-blue-400">—</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-sm" id="m-contacts"></div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Pipeline status</label>
+        <div class="flex flex-wrap gap-1.5" id="m-status-buttons"></div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Notes</label>
+        <textarea id="m-notes" rows="3" class="form-input" placeholder="Add private notes about this lead…"></textarea>
+        <button id="m-save-notes" class="btn-primary !py-2 mt-2 text-xs"><i class="bi bi-save"></i> Save notes</button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Outreach history</label>
+        <div id="m-outreach" class="space-y-2 text-xs text-slate-300"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => LeadsPage.init());
+</script>
+{% endblock %}

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · {{ APP_NAME }}{% endblock %}
+{% block heading %}Discover local leads{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+{% endblock %}
+
+{% block content %}
+<!-- Stat Counters -->
+<section class="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 mb-5">
+  <div class="stat-card">
+    <div class="stat-icon bg-blue-500/10 text-blue-400"><i class="bi bi-search"></i></div>
+    <div>
+      <div class="text-xs text-slate-400 uppercase tracking-wider">Found</div>
+      <div id="stat-found" class="stat-num">0</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-emerald-500/10 text-emerald-400"><i class="bi bi-fire"></i></div>
+    <div>
+      <div class="text-xs text-slate-400 uppercase tracking-wider">Hot leads</div>
+      <div id="stat-hot" class="stat-num">0</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-amber-500/10 text-amber-400"><i class="bi bi-star-fill"></i></div>
+    <div>
+      <div class="text-xs text-slate-400 uppercase tracking-wider">Avg. rating</div>
+      <div id="stat-rating" class="stat-num">–</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-cyan-500/10 text-cyan-400"><i class="bi bi-rulers"></i></div>
+    <div>
+      <div class="text-xs text-slate-400 uppercase tracking-wider">Avg. distance</div>
+      <div id="stat-distance" class="stat-num">–</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple-500/10 text-purple-400"><i class="bi bi-bookmark-star-fill"></i></div>
+    <div>
+      <div class="text-xs text-slate-400 uppercase tracking-wider">Saved total</div>
+      <div id="stat-saved" class="stat-num">0</div>
+    </div>
+  </div>
+</section>
+
+<!-- Filters + Map + Details -->
+<section class="grid grid-cols-1 xl:grid-cols-[300px_1fr_360px] gap-4 mb-5">
+  <!-- Filters -->
+  <aside class="glass-card p-4 lg:p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-bold text-sm uppercase tracking-wider text-slate-300">
+        <i class="bi bi-funnel-fill text-blue-400"></i> Filters
+      </h2>
+      <span id="data-source-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold uppercase tracking-wider hidden">
+        <i class="bi bi-broadcast"></i> Live
+      </span>
+    </div>
+
+    <form id="search-form" class="space-y-4 text-sm">
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Location</label>
+        <div class="flex gap-1">
+          <input type="text" name="city" value="" placeholder="City, address, ZIP…" class="form-input flex-1" list="city-list" autocomplete="off" />
+          <button type="button" id="locate-me" class="btn-ghost !px-2.5" title="Use my current location">
+            <i class="bi bi-geo-alt-fill text-blue-400"></i>
+          </button>
+        </div>
+        <div id="resolved-location" class="text-[11px] text-slate-400 mt-1 truncate"></div>
+        <datalist id="city-list">
+          <option>Lahore</option><option>Karachi</option><option>Islamabad</option>
+          <option>New York</option><option>London</option><option>Dubai</option>
+          <option>Mumbai</option><option>San Francisco</option><option>Toronto</option>
+          <option>Berlin</option><option>Tokyo</option><option>Sydney</option>
+        </datalist>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">
+          Radius: <span id="radius-label" class="text-blue-400 font-bold">5 km</span>
+        </label>
+        <input type="range" name="radius" id="radius-input" min="500" max="25000" step="500" value="5000" class="w-full accent-blue-500" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-2">Category</label>
+        <select name="category" class="form-input">
+          <option value="all">All categories</option>
+          {% for value, label in CATEGORIES.items() %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <details class="border border-slate-700 rounded-lg p-3 group open:bg-slate-800/40">
+        <summary class="cursor-pointer text-xs font-semibold text-slate-300 uppercase tracking-wider">
+          Advanced filters
+        </summary>
+        <div class="mt-3 space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Min rating</label>
+            <input type="number" name="min_rating" min="0" max="5" step="0.1" value="0" class="form-input" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Min reviews</label>
+            <input type="number" name="min_reviews" min="0" step="10" value="0" class="form-input" />
+          </div>
+          <label class="cat-opt cursor-pointer">
+            <input type="checkbox" name="no_cache" id="no-cache-toggle">
+            <span>Force fresh data (skip cache)</span>
+          </label>
+        </div>
+      </details>
+
+      <button type="submit" class="btn-primary w-full">
+        <i class="bi bi-search"></i> Search
+      </button>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" id="bulk-save-hot" class="btn-ghost text-xs" title="Save every hot lead in current results">
+          <i class="bi bi-collection-fill text-emerald-400"></i> Save hot
+        </button>
+        <button type="button" id="toggle-heatmap" class="btn-ghost text-xs" title="Toggle density heatmap">
+          <i class="bi bi-fire text-rose-400"></i> Heatmap
+        </button>
+      </div>
+    </form>
+  </aside>
+
+  <!-- Map -->
+  <div class="glass-card p-1.5 relative min-h-[480px]">
+    <div id="map" class="w-full h-[480px] lg:h-full rounded-lg"></div>
+    <div id="map-loading" class="absolute inset-0 hidden items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-lg z-[400]">
+      <div class="flex items-center gap-3 text-sm text-slate-200">
+        <div class="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        <span id="map-loading-text">Searching live businesses…</span>
+      </div>
+    </div>
+    <div class="absolute top-3 right-3 z-[400] flex gap-1">
+      <button id="map-style-btn" class="text-[10px] uppercase tracking-wider bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-200 px-2.5 py-1.5 rounded-md hover:bg-slate-800" title="Toggle map style">
+        <i class="bi bi-moon-stars-fill"></i> Dark
+      </button>
+    </div>
+  </div>
+
+  <!-- Details panel -->
+  <aside class="glass-card p-4 lg:p-5 min-h-[480px]" id="details-panel">
+    <div id="details-empty" class="h-full flex flex-col items-center justify-center text-center text-slate-400">
+      <i class="bi bi-mouse-fill text-4xl text-slate-600 mb-3"></i>
+      <div class="font-semibold">Select a business</div>
+      <div class="text-xs mt-1">Click a pin or row to see details, score breakdown, and one-click outreach.</div>
+    </div>
+    <div id="details-content" class="hidden"></div>
+  </aside>
+</section>
+
+<!-- Analytics row -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+  <div class="glass-card p-4">
+    <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2"><i class="bi bi-pie-chart-fill text-blue-400"></i> Categories</h3>
+    <div class="h-56"><canvas id="chart-cat"></canvas></div>
+  </div>
+  <div class="glass-card p-4">
+    <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2"><i class="bi bi-bar-chart-fill text-amber-400"></i> Lead score tiers</h3>
+    <div class="h-56"><canvas id="chart-tiers"></canvas></div>
+  </div>
+  <div class="glass-card p-4">
+    <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2"><i class="bi bi-graph-up text-emerald-400"></i> Rating distribution</h3>
+    <div class="h-56"><canvas id="chart-ratings"></canvas></div>
+  </div>
+</section>
+
+<!-- Lead detail modal -->
+<div id="lead-modal" class="lead-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lm-title">
+  <div class="lead-modal-backdrop" data-act="close-modal"></div>
+  <div class="lead-modal-card">
+    <button class="lead-modal-close" data-act="close-modal" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+
+    <!-- Header -->
+    <div class="lead-modal-header">
+      <div class="flex items-start gap-3">
+        <div id="lm-icon" class="lm-icon"><i class="bi bi-shop"></i></div>
+        <div class="min-w-0 flex-1">
+          <div id="lm-cat" class="text-[10px] uppercase tracking-wider text-blue-300 font-semibold mb-0.5"></div>
+          <h2 id="lm-title" class="text-xl sm:text-2xl font-black tracking-tight leading-tight"></h2>
+          <div id="lm-address" class="text-xs text-slate-400 mt-1 truncate"></div>
+        </div>
+        <div class="text-right shrink-0">
+          <div id="lm-score" class="text-3xl font-black text-mono leading-none">–</div>
+          <div id="lm-tier" class="text-[10px] uppercase tracking-wider mt-1"></div>
+        </div>
+      </div>
+      <div class="mt-3"><div class="score-bar"><div id="lm-score-fill" class="score-fill-medium" style="width:0%"></div></div></div>
+      <div id="lm-meta" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 mt-3"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="lead-modal-body">
+      <!-- Action row -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <button data-act="lm-call"   class="lm-action"><i class="bi bi-telephone-fill text-blue-400"></i> Call</button>
+        <button data-act="lm-wa"     class="lm-action"><i class="bi bi-whatsapp text-emerald-400"></i> WhatsApp</button>
+        <button data-act="lm-email"  class="lm-action"><i class="bi bi-envelope-fill text-amber-400"></i> Email</button>
+        <button data-act="lm-dir"    class="lm-action"><i class="bi bi-signpost-split-fill text-violet-400"></i> Directions</button>
+        <button data-act="lm-save"   class="lm-action lm-action-primary"><i class="bi bi-bookmark-plus"></i> <span data-slot="save-label">Save lead</span></button>
+      </div>
+
+      <!-- Two-column body -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mt-4">
+        <!-- LEFT: contact + score breakdown + notes -->
+        <div class="lg:col-span-3 space-y-4">
+          <!-- Contact card -->
+          <div class="lm-card">
+            <div class="lm-card-title flex items-center justify-between">
+              <span><i class="bi bi-person-vcard-fill text-blue-400"></i> Contact details</span>
+              <button data-act="lm-refresh" class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-blue-200 transition" title="Look up missing contact info from Wikidata + the business website">
+                <i class="bi bi-arrow-clockwise"></i> <span data-slot="refresh-label">Find more</span>
+              </button>
+            </div>
+            <div id="lm-contact" class="space-y-1.5 text-sm"></div>
+            <div id="lm-socials" class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800 mt-2"></div>
+            <div id="lm-quality" class="pt-2 mt-2 border-t border-slate-800"></div>
+          </div>
+
+          <!-- Score breakdown -->
+          <div class="lm-card">
+            <div class="lm-card-title"><i class="bi bi-bullseye text-amber-400"></i> Why this score?</div>
+            <div id="lm-breakdown" class="space-y-1.5 text-sm"></div>
+          </div>
+
+          <!-- Notes + status (only when saved) -->
+          <div id="lm-notes-card" class="lm-card hidden">
+            <div class="lm-card-title flex items-center justify-between">
+              <span><i class="bi bi-journal-text text-emerald-400"></i> Notes &amp; pipeline</span>
+              <span id="lm-save-state" class="text-[10px] text-slate-500"></span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-2" id="lm-status-chips"></div>
+            <textarea id="lm-notes" rows="3" class="form-input w-full text-sm" placeholder="Add private notes about this lead…"></textarea>
+          </div>
+
+          <!-- Outreach history (only when saved) -->
+          <div id="lm-outreach-card" class="lm-card hidden">
+            <div class="lm-card-title"><i class="bi bi-clock-history text-violet-400"></i> Outreach history</div>
+            <div id="lm-outreach" class="space-y-1.5 text-xs"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: mini map + templates -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="lm-card !p-0 overflow-hidden">
+            <div id="lm-mini-map" class="w-full h-48 bg-slate-900"></div>
+            <div id="lm-coords" class="px-3 py-2 text-[11px] text-slate-400 border-t border-slate-800 flex items-center justify-between">
+              <span>—</span>
+              <button data-act="lm-copy-coords" class="text-blue-300 hover:text-blue-200"><i class="bi bi-clipboard"></i> Copy</button>
+            </div>
+          </div>
+
+          <div class="lm-card">
+            <div class="lm-card-title"><i class="bi bi-chat-square-quote-fill text-emerald-400"></i> Outreach templates</div>
+            <div id="lm-templates" class="space-y-1.5"></div>
+          </div>
+
+          <div class="lm-card">
+            <div class="lm-card-title"><i class="bi bi-share-fill text-blue-400"></i> Share</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button data-act="lm-share-summary" class="btn-ghost"><i class="bi bi-clipboard-data"></i> Copy summary</button>
+              <button data-act="lm-share-link" class="btn-ghost"><i class="bi bi-link-45deg"></i> Copy maps link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Results table -->
+<section class="glass-card overflow-hidden">
+  <div class="flex flex-wrap items-center gap-3 p-4 border-b border-slate-800">
+    <h3 class="font-bold tracking-tight"><i class="bi bi-table text-blue-400"></i> Results</h3>
+    <div class="flex items-center gap-1.5 text-[11px]">
+      <button data-tier-filter="all" class="tier-chip is-active">All</button>
+      <button data-tier-filter="hot" class="tier-chip">🟢 Hot</button>
+      <button data-tier-filter="medium" class="tier-chip">🟡 Medium</button>
+      <button data-tier-filter="low" class="tier-chip">🔴 Low</button>
+    </div>
+    <div class="ml-auto flex items-center gap-2 text-xs">
+      <input id="results-filter" type="text" placeholder="Filter results…" class="form-input w-44 !py-1.5" />
+      <button id="export-csv" class="btn-ghost" title="Export current results to CSV">
+        <i class="bi bi-filetype-csv"></i> CSV
+      </button>
+      <button id="export-wa" class="btn-ghost" title="Export WhatsApp links">
+        <i class="bi bi-whatsapp text-emerald-400"></i> WhatsApp list
+      </button>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400">
+        <tr>
+          <th class="px-4 py-3 text-left">Business</th>
+          <th class="px-4 py-3 text-left">Category</th>
+          <th class="px-4 py-3 text-right">Rating</th>
+          <th class="px-4 py-3 text-right">Distance</th>
+          <th class="px-4 py-3 text-right">Score</th>
+          <th class="px-4 py-3 text-center">Tier</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="results-tbody" class="divide-y divide-slate-800">
+        <tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">Run a search to see live results.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/maps.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    Dashboard.init();
+  });
+</script>
+{% endblock %}
