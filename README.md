@@ -200,3 +200,6 @@ Tier	Range	Label	Recommended Action
 Hot	70–100	Green	Contact within 24 hours
 Medium	40–69	Yellow	Add to outreach pipeline
 Low	0–39	Red	Monitor for changes
+
+### License
+This project is licensed under the MIT License. See the LICENSE file for details
