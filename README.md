@@ -91,7 +91,7 @@ Designed for marketing agencies, freelancers, and sales teams who need to find a
 
 **Clone the repository**
 
-git clone https://github.com/yourusername/businessfinder-pro.git
+git clone https://github.com/0xnerd1/Intelligent-Local-Lead-Generation-Business-Intelligence-Platform
 cd businessfinder-pro
 
 ### Backend setup
@@ -117,70 +117,7 @@ cp .env.example .env.local
 npm run dev
 Open http://localhost:3000 in your browser.
 
-### Project Structure
 
-businessfinder-pro/
-├── frontend/
-│   ├── components/
-│   │   ├── Dashboard/
-│   │   ├── Map/
-│   │   ├── Leads/
-│   │   ├── Filters/
-│   │   ├── Outreach/
-│   │   └── Charts/
-│   ├── pages/
-│   ├── hooks/
-│   ├── utils/
-│   └── styles/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── models/
-│   │   ├── services/
-│   │   └── main.py
-│   ├── requirements.txt
-│   └── .env.example
-├── database/
-│   └── schema.sql
-├── docs/
-│   ├── SETUP.md
-│   ├── API.md
-│   └── DEPLOYMENT.md
-├── README.md
-└── LICENSE
-Environment Variables
-Backend
-Variable	Description	Required
-GOOGLE_PLACES_API_KEY	Google Places API key	Yes
-DATABASE_URL	Database connection string	Yes
-SECRET_KEY	Application secret key	Yes
-Frontend
-Variable	Description	Required
-NEXT_PUBLIC_API_URL	Backend API base URL	Yes
-NEXT_PUBLIC_MAP_TILE_URL	Map tile server URL	No
-API Reference
-Search Places
-text
-GET /api/places/search
-Parameters:
-
-Parameter	Type	Default	Description
-location	string	required	City, address, or coordinates
-radius	integer	5000	Search radius in meters
-category	string	all	Business category filter
-min_rating	float	0	Minimum rating filter
-min_reviews	integer	0	Minimum reviews filter
-
-### Response:
-Business Detail
-
-GET /api/places/{place_id}
-
-### Save Lead
-POST /api/leads
-
-#### Update Lead Status
-PATCH /api/leads/{lead_id}
 
 #### Lead Scoring Methodology
 Each business receives an automated score calculated from six weighted factors:
